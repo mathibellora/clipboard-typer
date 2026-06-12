@@ -34,8 +34,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            gcc libx11-dev libxtst-dev libpng++-dev \
-            libxinerama-dev libxrandr-dev libxcursor-dev \
+            gcc libx11-dev libxtst-dev \
             libgtk-3-dev libayatana-appindicator3-dev
 
       - name: Add MinGW to PATH (Windows)

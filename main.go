@@ -6,13 +6,12 @@ import (
 
 	"golang.design/x/clipboard"
 	"golang.design/x/hotkey"
-	"github.com/go-vgo/robotgo"
 	"github.com/getlantern/systray"
 )
 
 var typing atomic.Bool
 
-func typeClipboard() {
+func onActivate() {
 	if !typing.CompareAndSwap(false, true) {
 		return
 	}
@@ -23,10 +22,7 @@ func typeClipboard() {
 		return
 	}
 	time.Sleep(150 * time.Millisecond)
-	for _, ch := range text {
-		robotgo.TypeStr(string(ch))
-		robotgo.MilliSleep(40)
-	}
+	typeText(text)
 }
 
 func listenHotkey() {
@@ -37,7 +33,7 @@ func listenHotkey() {
 	defer hk.Unregister()
 
 	for range hk.Keydown() {
-		go typeClipboard()
+		go onActivate()
 	}
 }
 

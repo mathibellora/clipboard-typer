@@ -32,7 +32,7 @@ Para cerrar: click derecho en el ícono → Salir.
 3. Activar el permiso para Clipboard Typer
 4. Volver a ejecutar
 
-**Linux** — funciona en entornos con X11 (la mayoría de entornos corporativos). En Wayland puede no funcionar.
+**Linux** — requiere `xdotool` instalado (`sudo apt install xdotool` o equivalente). Funciona en entornos con X11; en Wayland puede no funcionar.
 
 ## Configuración
 

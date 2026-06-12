@@ -1,0 +1,102 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: clipboard-typer-windows.exe
+            extra_args: --noconsole
+          - os: macos-latest
+            name: clipboard-typer-mac
+            extra_args: --windowed
+          - os: ubuntu-latest
+            name: clipboard-typer-linux
+            extra_args: ""
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y xclip xdotool python3-dev python3-xlib
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build
+        run: >
+          pyinstaller
+          --onefile
+          --name clipboard-typer
+          ${{ matrix.extra_args }}
+          main.py
+
+      - name: Rename output (Windows)
+        if: runner.os == 'Windows'
+        run: mv dist/clipboard-typer.exe dist/${{ matrix.name }}
+        shell: bash
+
+      - name: Rename output (non-Windows)
+        if: runner.os != 'Windows'
+        run: mv dist/clipboard-typer dist/${{ matrix.name }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Delete existing latest release
+        run: |
+          gh release delete latest --repo ${{ github.repository }} --yes 2>/dev/null || true
+          git -c 'http.extraheader=Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+            ls-remote --tags origin | grep 'refs/tags/latest' && \
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/tags/latest 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Última versión
+          body: |
+            ## Descarga
+
+            | Sistema | Archivo |
+            |---------|---------|
+            | Windows | `clipboard-typer-windows.exe` |
+            | Mac     | `clipboard-typer-mac` |
+            | Linux   | `clipboard-typer-linux` |
+
+            ## Uso
+            1. Descargá el archivo para tu sistema
+            2. Ejecutalo (en Mac puede pedir permiso de Accesibilidad la primera vez)
+            3. Aparece un ícono en la barra del sistema
+            4. Copiá la contraseña, hacé click en el campo de la VM y presioná **Ctrl+Shift+V**
+          files: dist/*
+          make_latest: true
